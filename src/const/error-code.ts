@@ -4,6 +4,7 @@ export const ERROR_CODES = {
   404: 404,
   500: 500,
   403: 403,
+  409: 409,
 } as const;
 
 export const SUCESS_CODE = {

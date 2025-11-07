@@ -1,37 +1,31 @@
-import express, { Response, NextFunction } from 'express';
-import mongoose, { Types } from 'mongoose';
+import express from 'express';
+import mongoose from 'mongoose';
+import { errors } from 'celebrate';
 
 import './models/user';
 import './models/card';
 
 import usersRouter from './routes/users';
 import cardsRouter from './routes/cards';
+import { login, createUser } from './controllers';
+
+import auth from './middlewares/auth';
+import { errorLogger, requestLogger } from './middlewares/logger';
+import errorHandler from './middlewares/errorHandler';
+import { validateCreateUser, validateLogin } from './middlewares/validations';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = 'mongodb://localhost:27017/mestodb';
 
-declare global {
-  // eslint-disable-next-line no-unused-vars
-  namespace Express {
-    // eslint-disable-next-line no-unused-vars
-    interface Request {
-      user?: {
-        _id: Types.ObjectId | string;
-      };
-    }
-  }
-}
+app.use(requestLogger);
 
 app.use(express.json());
 
-app.use((req: express.Request, res: Response, next: NextFunction) => {
-  req.user = {
-    _id: '6909226d5a6b5f71d4dff6a1',
-  };
+app.post('/signin', validateLogin, login);
+app.post('/signup', validateCreateUser, createUser);
 
-  next();
-});
+app.use(auth);
 
 app.use('/users', usersRouter);
 app.use('/cards', cardsRouter);
@@ -61,6 +55,11 @@ app.get('/', (req, res) => {
 app.use('*', (req, res) => {
   res.status(404).json({ message: 'Запрашиваемый ресурс не найден' });
 });
+
+app.use(errors());
+
+app.use(errorLogger);
+app.use(errorHandler);
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
